@@ -1,144 +1,343 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Random Position Picker</title>
-<style>
-    body {
-        background-color: #000;
-        font-family: Arial, sans-serif;
-        color: #0ff;
-        text-align: center;
-        padding: 20px;
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Random Position Picker — Jonathan XK</title>
+  <style>
+    :root{
+      --bg:#0b0f1a;
+      --card:#0f1724;
+      --accent:#ff6b00; /* orange accent */
+      --glass: rgba(255,255,255,0.04);
+      --neon: 0 0 18px rgba(255,107,0,0.14), 0 0 36px rgba(255,107,0,0.06);
+      --text:#e6edf3;
+      --muted:#9aa6b2;
     }
-    h1 {
-        color: #0ff;
-        text-shadow: 0 0 10px #0ff;
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      background:
+        radial-gradient(ellipse at 10% 10%, rgba(255,107,0,0.04), transparent 10%),
+        linear-gradient(180deg, #061022 0%, #081124 45%, #04060a 100%);
+      color:var(--text);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
     }
-    .game-board {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 15px;
-        max-width: 400px;
-        margin: auto;
+    .app {
+      width:100%;
+      max-width:980px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:14px;
+      box-shadow: 0 6px 30px rgba(2,6,23,0.6);
+      overflow:hidden;
+      position:relative;
     }
+    .intro {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      padding:64px 20px;
+      text-align:center;
+      background: linear-gradient(180deg, rgba(255,107,0,0.03), transparent);
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      transition:opacity .45s ease, transform .45s ease;
+    }
+    .intro h1{
+      margin:0;
+      font-size:28px;
+      letter-spacing:0.6px;
+      text-transform:uppercase;
+      color:var(--accent);
+      text-shadow: var(--neon);
+    }
+    .intro p{
+      margin:8px 0 0;
+      color:var(--muted);
+      font-size:15px;
+    }
+    .main {
+      padding:18px;
+      display:none;
+      gap:18px;
+    }
+    .topbar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:10px 6px;
+    }
+    .title { display:flex; gap:12px; align-items:baseline; }
+    .title h2{ margin:0; font-size:18px; }
+    .title small { color:var(--muted); font-size:12px; margin-top:4px; display:block; }
+    .controls { display:flex; gap:8px; align-items:center; }
+    .btn {
+      background:linear-gradient(180deg, rgba(255,107,0,0.12), rgba(255,107,0,0.06));
+      border:1px solid rgba(255,107,0,0.14);
+      padding:8px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      color:var(--text);
+      font-weight:600;
+      box-shadow:var(--neon);
+    }
+    .btn.ghost {
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.04);
+      box-shadow:none;
+      color:var(--muted);
+    }
+    .btn:active{ transform:translateY(1px) }
+    .board-and-sidebar { display:flex; gap:18px; padding:12px; }
+    .board {
+      flex:1;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:12px;
+    }
+    @media (max-width:700px){ .board { grid-template-columns: repeat(3,1fr); } }
     .box {
-        background-color: #111;
-        border: 2px solid #0ff;
-        padding: 20px;
-        font-size: 1.5em;
-        color: #0ff;
-        cursor: pointer;
-        border-radius: 10px;
-        transition: 0.3s;
-        text-shadow: 0 0 5px #0ff;
+      background:var(--card);
+      border-radius:10px;
+      height:88px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+      font-weight:700;
+      font-size:16px;
+      color:var(--text);
+      border:1px solid rgba(255,255,255,0.03);
+      transition: transform .12s ease, box-shadow .12s ease, background .15s;
     }
-    .box.disabled {
-        background-color: #333;
-        color: #555;
-        cursor: not-allowed;
-        border-color: #555;
+    .box.locked { opacity:0.45; cursor:not-allowed; }
+    .box.revealed {
+      background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(255,107,0,0.06));
+      box-shadow: 0 8px 30px rgba(255,107,0,0.06);
+      color:#fff;
+      border:1px solid rgba(255,107,0,0.18);
+      transform:translateY(-3px);
+      font-size:18px;
     }
-    .box:hover:not(.disabled) {
-        background-color: #0ff;
-        color: #000;
+    .sidebar {
+      width:260px;
+      background:var(--glass);
+      padding:12px;
+      border-radius:10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:220px;
     }
-    #chosen {
-        margin-top: 20px;
-        font-size: 1.2em;
+    .sidebar h3 { margin:0; font-size:14px; color:var(--accent); }
+    .chosen-list {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      max-height:240px;
+      overflow:auto;
     }
-    button {
-        padding: 10px 15px;
-        margin-top: 20px;
-        font-size: 1em;
-        border-radius: 5px;
-        background-color: #0ff;
-        color: #000;
-        border: none;
-        cursor: pointer;
-        font-weight: bold;
+    .chosen-item{
+      background:rgba(255,255,255,0.02);
+      padding:8px;
+      border-radius:8px;
+      font-size:13px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
     }
-    button:hover {
-        background-color: #00cccc;
+    .muted { color:var(--muted); font-size:13px; }
+    .cmd-row { display:flex; gap:8px; align-items:center; }
+    input[type="text"]{
+      flex:1;
+      padding:8px 10px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.03);
+      background:transparent;
+      color:var(--text);
+      outline:none;
     }
-</style>
+    .hint { font-size:12px; color:var(--muted); text-align:center; padding-top:6px; }
+    footer { padding:10px 16px; color:var(--muted); font-size:12px; border-top:1px solid rgba(255,255,255,0.02); text-align:center; }
+  </style>
 </head>
 <body>
+  <div class="app">
 
-<h1>🎲 Random Position Picker 🎲</h1>
-<p>Click a box to get your random position!</p>
+    <!-- INTRO -->
+    <div id="intro" class="intro">
+      <h1>Welcome to Random Position Picker</h1>
+      <p>Designed and made by <strong>Jonathan XK</strong></p>
+    </div>
 
-<div class="game-board" id="board"></div>
+    <!-- MAIN -->
+    <div id="main" class="main">
+      <div class="topbar">
+        <div class="title">
+          <h2>Random Position Picker</h2>
+          <small>13 boxes — random positions 1–13</small>
+        </div>
+        <div class="controls">
+          <button id="whatsappShare" class="btn ghost">Share to WhatsApp</button>
+          <button id="resetBtn" class="btn">Reset 🔄</button>
+        </div>
+      </div>
 
-<div id="chosen"><strong>Chosen Numbers:</strong> None yet</div>
+      <div class="board-and-sidebar">
+        <div class="board" id="board"></div>
 
-<button id="resetBtn">🔄 Reset Game (Admin Only)</button>
+        <aside class="sidebar">
+          <h3>Chosen Numbers</h3>
+          <div id="chosenList" class="chosen-list">
+            <div class="muted">No numbers chosen yet</div>
+          </div>
+          <div class="hint">Once a box is chosen, all boxes lock until admin resets.</div>
+          <div class="cmd-row">
+            <input id="cmdInput" type="text" placeholder='Type "reset" and press Enter'>
+            <button id="cmdSubmit" class="btn ghost">Send</button>
+          </div>
+        </aside>
+      </div>
 
-<script>
-    const board = document.getElementById('board');
-    const chosenDiv = document.getElementById('chosen');
+      <footer>Admin password for reset: <strong>xk</strong></footer>
+    </div>
+  </div>
+
+  <script>
+    const BOX_COUNT = 13;
+    const INTRO_MS = 3000;
+    let availableNumbers = [];
+    let chosen = [];
+    let locked = false;
+    let hasPlayerPicked = false;
+
+    const introEl = document.getElementById('intro');
+    const mainEl = document.getElementById('main');
+    const boardEl = document.getElementById('board');
+    const chosenListEl = document.getElementById('chosenList');
     const resetBtn = document.getElementById('resetBtn');
+    const cmdInput = document.getElementById('cmdInput');
+    const cmdSubmit = document.getElementById('cmdSubmit');
+    const whatsappShareBtn = document.getElementById('whatsappShare');
 
-    let availableNumbers = Array.from({length: 12}, (_, i) => i + 1);
-    let chosenNumbers = {};
-    const ADMIN_PASSWORD = "20"; // 🔑 Admin password set to 20
-
-    function createBoard() {
-        board.innerHTML = '';
-        for (let i = 1; i <= 12; i++) {
-            const box = document.createElement('div');
-            box.classList.add('box');
-            box.textContent = `Box ${i}`;
-            box.onclick = () => chooseBox(i, box);
-            board.appendChild(box);
-        }
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
     }
 
-    function chooseBox(boxNum, element) {
-        if (element.classList.contains('disabled')) return;
-        if (availableNumbers.length === 0) return;
-
-        const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-        const number = availableNumbers.splice(randomIndex, 1)[0];
-        chosenNumbers[`Box ${boxNum}`] = number;
-
-        element.textContent = number;
-        element.classList.add('disabled');
-
-        updateChosenList();
+    function initGame(){
+      availableNumbers = shuffle(Array.from({length:BOX_COUNT}, (_,i)=>i+1));
+      chosen = [];
+      locked = false;
+      hasPlayerPicked = false;
+      renderBoard();
+      renderChosenList();
     }
 
-    function updateChosenList() {
-        if (Object.keys(chosenNumbers).length === 0) {
-            chosenDiv.innerHTML = "<strong>Chosen Numbers:</strong> None yet";
-            return;
-        }
-        let list = Object.entries(chosenNumbers)
-            .map(([box, num]) => `${box}: ${num}`)
-            .join(', ');
-        chosenDiv.innerHTML = `<strong>Chosen Numbers:</strong> ${list}`;
+    function renderBoard(){
+      boardEl.innerHTML = '';
+      for(let i=1;i<=BOX_COUNT;i++){
+        const box = document.createElement('button');
+        box.className = 'box';
+        box.dataset.box = i;
+        box.innerHTML = `<div>Box ${i}</div>`;
+        box.addEventListener('click', onBoxClick);
+        boardEl.appendChild(box);
+      }
+      updateLockVisuals();
     }
 
-    function resetGame() {
-        availableNumbers = Array.from({length: 12}, (_, i) => i + 1);
-        chosenNumbers = {};
-        createBoard();
-        updateChosenList();
+    function onBoxClick(e){
+      if(locked || hasPlayerPicked) return;
+      const boxEl = e.currentTarget;
+      const boxIndex = parseInt(boxEl.dataset.box);
+      if(availableNumbers.length === 0) return;
+      const assigned = availableNumbers.pop();
+      chosen.push({ boxIndex, number: assigned });
+      boxEl.classList.add('revealed');
+      boxEl.textContent = assigned;
+      locked = true;
+      hasPlayerPicked = true;
+      updateLockVisuals();
+      renderChosenList();
     }
 
-    resetBtn.addEventListener('click', () => {
-        const inputPassword = prompt("Enter admin password to reset:");
-        if (inputPassword === ADMIN_PASSWORD) {
-            resetGame();
-            alert("Game reset successfully!");
+    function updateLockVisuals(){
+      document.querySelectorAll('.box').forEach(b=>{
+        if(locked && !b.classList.contains('revealed')){
+          b.classList.add('locked');
+          b.disabled = true;
         } else {
-            alert("❌ Incorrect password! Reset not allowed.");
+          b.classList.remove('locked');
+          b.disabled = false;
         }
+      });
+    }
+
+    function renderChosenList(){
+      chosenListEl.innerHTML = '';
+      if(chosen.length === 0){
+        chosenListEl.innerHTML = '<div class="muted">No numbers chosen yet</div>';
+        return;
+      }
+      chosen.forEach(c=>{
+        const item = document.createElement('div');
+        item.className = 'chosen-item';
+        item.innerHTML = `<div>Box ${c.boxIndex}</div><div>${c.number}</div>`;
+        chosenListEl.appendChild(item);
+      });
+    }
+
+    function resetGame(){
+      const pass = prompt('Enter admin password to reset:');
+      if(pass !== 'xk'){
+        alert('Incorrect password.');
+        return;
+      }
+      if(!confirm('Reset the game?')) return;
+      initGame();
+    }
+
+    function handleCmdSubmit(){
+      const val = cmdInput.value.trim().toLowerCase();
+      if(val === 'reset'){ resetGame(); }
+      else if(val) alert('Unknown command.');
+      cmdInput.value = '';
+    }
+
+    function shareToWhatsapp(){
+      const text = encodeURIComponent('Join the Random Position Picker — Designed & made by Jonathan XK!');
+      window.open(`https://wa.me/?text=${text}`, '_blank');
+    }
+
+    resetBtn.addEventListener('click', resetGame);
+    cmdSubmit.addEventListener('click', handleCmdSubmit);
+    cmdInput.addEventListener('keydown', e=>{ if(e.key === 'Enter') handleCmdSubmit(); });
+    whatsappShareBtn.addEventListener('click', shareToWhatsapp);
+
+    function showMainAfterIntro(){
+      introEl.style.opacity = '0';
+      introEl.style.transform = 'translateY(-8px)';
+      setTimeout(()=>{
+        introEl.style.display = 'none';
+        mainEl.style.display = 'block';
+      }, 450);
+    }
+
+    window.addEventListener('load', ()=>{
+      initGame();
+      setTimeout(showMainAfterIntro, INTRO_MS);
     });
-
-    createBoard();
-</script>
-
+  </script>
 </body>
 </html>
