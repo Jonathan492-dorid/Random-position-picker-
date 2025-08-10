@@ -164,8 +164,81 @@
       color:var(--text);
       outline:none;
     }
-    .hint { font-size:12px; color:var(--muted); text-align:center; padding-top:6px; }
     footer { padding:10px 16px; color:var(--muted); font-size:12px; border-top:1px solid rgba(255,255,255,0.02); text-align:center; }
+
+    /* PASSWORD PROMPT OVERLAY */
+    #passwordOverlay {
+      position: fixed;
+      top:0; left:0; right:0; bottom:0;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    #passwordBox {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 24px 28px;
+      width: 280px;
+      box-shadow: 0 0 20px var(--accent);
+      text-align: center;
+    }
+    #passwordBox h3 {
+      margin: 0 0 12px 0;
+      color: var(--accent);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 18px;
+      text-shadow: var(--neon);
+    }
+    #passwordInput {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      font-size: 16px;
+      background: transparent;
+      color: var(--text);
+      outline: none;
+      margin-bottom: 14px;
+      box-sizing: border-box;
+    }
+    #passwordError {
+      color: #ff4c4c;
+      font-size: 13px;
+      min-height: 18px;
+      margin-bottom: 10px;
+      visibility: hidden;
+    }
+    #passwordButtons {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    #passwordButtons button {
+      flex: 1;
+      padding: 8px 0;
+      border-radius: 8px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text);
+      background: var(--accent);
+      box-shadow: var(--neon);
+      transition: background-color 0.3s ease;
+    }
+    #passwordButtons button.cancel {
+      background: #444;
+      box-shadow: none;
+    }
+    #passwordButtons button:hover:not(.cancel) {
+      background: #ff8500;
+    }
+    #passwordButtons button.cancel:hover {
+      background: #666;
+    }
   </style>
 </head>
 <body>
@@ -206,7 +279,20 @@
         </aside>
       </div>
 
-      <footer>Admin password for reset: <strong>xk</strong></footer>
+      <footer></footer>
+    </div>
+  </div>
+
+  <!-- PASSWORD PROMPT OVERLAY -->
+  <div id="passwordOverlay">
+    <div id="passwordBox">
+      <h3>Admin Password</h3>
+      <input id="passwordInput" type="password" placeholder="Enter password" autocomplete="off" />
+      <div id="passwordError">Incorrect password</div>
+      <div id="passwordButtons">
+        <button id="passwordSubmitBtn">Submit</button>
+        <button id="passwordCancelBtn" class="cancel">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -226,6 +312,12 @@
     const cmdInput = document.getElementById('cmdInput');
     const cmdSubmit = document.getElementById('cmdSubmit');
     const whatsappShareBtn = document.getElementById('whatsappShare');
+
+    const passwordOverlay = document.getElementById('passwordOverlay');
+    const passwordInput = document.getElementById('passwordInput');
+    const passwordError = document.getElementById('passwordError');
+    const passwordSubmitBtn = document.getElementById('passwordSubmitBtn');
+    const passwordCancelBtn = document.getElementById('passwordCancelBtn');
 
     function shuffle(arr){
       for(let i=arr.length-1;i>0;i--){
@@ -298,14 +390,35 @@
       });
     }
 
-    function resetGame(){
-      const pass = prompt('Enter admin password to reset:');
-      if(pass !== 'xk'){
-        alert('Incorrect password.');
-        return;
+    // Show password prompt overlay
+    function showPasswordPrompt(){
+      passwordInput.value = '';
+      passwordError.style.visibility = 'hidden';
+      passwordOverlay.style.display = 'flex';
+      passwordInput.focus();
+    }
+
+    // Hide password prompt overlay
+    function hidePasswordPrompt(){
+      passwordOverlay.style.display = 'none';
+    }
+
+    // Handle password submit
+    function handlePasswordSubmit(){
+      const pass = passwordInput.value.trim();
+      if(pass === 'xk'){
+        hidePasswordPrompt();
+        if(confirm('Reset the game?')){
+          initGame();
+        }
+      } else {
+        passwordError.style.visibility = 'visible';
+        passwordInput.focus();
       }
-      if(!confirm('Reset the game?')) return;
-      initGame();
+    }
+
+    function resetGame(){
+      showPasswordPrompt();
     }
 
     function handleCmdSubmit(){
@@ -324,6 +437,15 @@
     cmdSubmit.addEventListener('click', handleCmdSubmit);
     cmdInput.addEventListener('keydown', e=>{ if(e.key === 'Enter') handleCmdSubmit(); });
     whatsappShareBtn.addEventListener('click', shareToWhatsapp);
+
+    passwordSubmitBtn.addEventListener('click', handlePasswordSubmit);
+    passwordInput.addEventListener('keydown', e => {
+      if(e.key === 'Enter') handlePasswordSubmit();
+      else passwordError.style.visibility = 'hidden';
+    });
+    passwordCancelBtn.addEventListener('click', () => {
+      hidePasswordPrompt();
+    });
 
     function showMainAfterIntro(){
       introEl.style.opacity = '0';
